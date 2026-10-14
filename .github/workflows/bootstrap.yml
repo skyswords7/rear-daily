@@ -1,0 +1,67 @@
+name: Publish first beta
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/bootstrap.yml]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency: initial-public-release
+jobs:
+  publish:
+    if: github.repository == 'skyswords7/rear-daily' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Verify and unpack reviewed public files
+        shell: bash
+        run: |
+          python - <<'PY'
+          import base64, hashlib, io, os, zipfile
+          from pathlib import Path, PurePosixPath
+          data = base64.b64decode(''.join(Path('publish-bundle.b64').read_text().split()), validate=True)
+          assert hashlib.sha256(data).hexdigest() == 'c88ef62bb61616923db78e30b2c0435f7f209d6c2b0257cd98751d1483680ee6', 'Bundle checksum mismatch'
+          release = Path(os.environ['RUNNER_TEMP']) / 'reardaily-release'
+          release.mkdir(exist_ok=True)
+          with zipfile.ZipFile(io.BytesIO(data)) as archive:
+              entries = archive.infolist()
+              assert len(entries) == 73
+              for entry in entries:
+                  path = PurePosixPath(entry.filename)
+                  assert not path.is_absolute() and '..' not in path.parts and '.git' not in path.parts
+                  assert entry.file_size < 5 * 1024 * 1024
+                  if path.parts[0] == 'source':
+                      target = Path(*path.parts[1:])
+                  elif path.parts[0] == 'release':
+                      assert path.name in ('rear-daily-v0.8.0-beta.apk', 'SHA256SUMS')
+                      target = release / path.name
+                  else:
+                      raise ValueError('Unexpected archive path')
+                  content = archive.read(entry)
+                  if target.exists():
+                      assert target.read_bytes() == content, 'Refusing to replace an unrelated file'
+                  target.parent.mkdir(parents=True, exist_ok=True)
+                  target.write_bytes(content)
+          expected = (release / 'SHA256SUMS').read_text().split()[0]
+          assert hashlib.sha256((release / 'rear-daily-v0.8.0-beta.apk').read_bytes()).hexdigest() == expected
+          (release / 'notes.md').write_text("# 每日背屏 v0.8.0-beta\n\n首个公开测试版，采用 MIT 许可证。\n\n- 图片、视频与 AI 生图，收藏、历史及每日自动更换。\n- 首次引导：Shizuku 自动设置、电脑 ADB 备用流程和手动操作手册。\n- Android Keystore 加密保存 API Key；发行包不包含使用者配置或密钥。\n- 项目原创欢迎素材、固定依赖校验、独立发行签名与构建文档。\n\n## 下载\n\n安装附件 `rear-daily-v0.8.0-beta.apk`；`SHA256SUMS` 用于核对下载完整性。需要 Android 12+，并具备小米主题管理器和背屏服务。安装 Shizuku 后按 App 内引导设置，仍需在系统预览页面确认「应用」。\n\n## 验证与限制\n\n此前 0.8 已完成 145 项 Android 真机断言验证，用户确认背屏正常显示。本次公开版的 12 项离线安装测试、源码和测试源码编译、APK 签名及秘密模式扫描通过。公开版打包时手机未连接，欢迎素材和发行签名变更未重新进行真机回归，因此标记为 beta。\n\n实测主题管理器版本为 11.5.3.1；其他机型与 HyperOS 版本需要验证。内部开发版与公开发行版使用不同签名，不能直接覆盖安装；请先保留需要的本机素材和设置，勿直接卸载丢失数据。\n\n使用指南见仓库 README 与 docs/rear-screen-setup.md。反馈问题时请隐去 API Key、个人素材、设备序列号和私人服务地址。\n", encoding='utf8')
+          Path('publish-bundle.b64').unlink()
+          Path('.github/workflows/bootstrap.yml').unlink()
+          PY
+      - name: Check public source and release APK
+        run: |
+          git add -A
+          python scripts/check_public.py --apk "$RUNNER_TEMP/reardaily-release/rear-daily-v0.8.0-beta.apk"
+          python tests/test_setup_install.py
+      - name: Commit source with private email
+        run: |
+          git config user.name skyswords7
+          git config user.email skyswords7@users.noreply.github.com
+          git commit -m "Publish RearDaily v0.8.0-beta under MIT"
+          git push origin HEAD:main
+      - name: Publish beta APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create v0.8.0-beta "$RUNNER_TEMP/reardaily-release/rear-daily-v0.8.0-beta.apk" "$RUNNER_TEMP/reardaily-release/SHA256SUMS" --repo "$GITHUB_REPOSITORY" --target "$(git rev-parse HEAD)" --prerelease --title "每日背屏 v0.8.0-beta" --notes-file "$RUNNER_TEMP/reardaily-release/notes.md"
