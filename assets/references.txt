@@ -1,0 +1,56 @@
+每日背屏 0.8.0-beta 参考与许可
+
+本版本保留 Android Java / ContentProvider / MediaStore / MAML 架构。以下工作流与素材项目用于理解流程与 API 合约，没有嵌入其工作流或脚本。Shizuku 功能依赖下方列出的官方 SDK。
+
+n8n 14768：热点来源降级、已用选题过滤。实际 Pick Trend 节点取前两项，不能直接当随机实现。
+https://n8n.io/workflows/14768-auto-post-trending-x-tweets-with-gemini-ai-images-flux-and-buffer/
+n8n 19934：新闻上下文 → 结构化输出 → 图片生成 → 成功后持久化。
+https://n8n.io/workflows/19934-post-daily-instagram-news-carousels-using-claude-and-gemini/
+两份公开工作流仅供参考，未复制节点代码；未假定网页模板具有 MIT 授权。
+
+qwen-image-skill：MIT，Copyright (c) 2026 1317209322。
+参考：脚本的 DashScope 请求/响应结构、及时下载、参数与 request_id 记录，以及提示词防同质化方法。
+https://github.com/1317209322/qwen-image-skill
+QianWen-AI/qianwen-ai：Apache-2.0，Copyright 2026 QianWenAI。
+参考：图像生成 skill 与 API guide 的结构化解析、密钥保护和异常分类。最新参数以百炼官方文档为准。
+https://github.com/QianWen-AI/qianwen-ai
+WallTrek：MIT，Copyright 2025 swax。
+参考 PromptGeneratorService、DatabaseService、MainView 的随机属性、提示词编辑和历史元数据设计。
+https://github.com/swax/WallTrek
+许可证原文随源码及 APK 的 assets/licenses 目录保存。
+
+官方接口：
+https://help.aliyun.com/zh/model-studio/qwen3-8-flash
+https://help.aliyun.com/en/model-studio/qwen-api-via-openai-chat-completions
+https://help.aliyun.com/en/model-studio/web-search
+https://help.aliyun.com/en/model-studio/qwen-image-generation-and-editing-api-reference
+阿里百炼默认 qwen3.8-flash 选题 / qwen-image-3.0 生图，模型名称可编辑。图像使用 DashScope 同步接口，n=1、size=1472*896。地区为北京，使用 dashscope.aliyuncs.com 域名。
+OpenAI 兼容接口支持自定义 HTTPS Base URL、API Key 和两种模型名称，并非限定 OpenAI 官方。按标准 Chat Completions / Images Generations 协议实现，兼容生图 URL 和 Base64 响应。不同第三方实现的模型和尺寸支持可能不同；不自动切换模型。兼容接口不假定支持联网检索，自由选题如实标注。
+协议核对（2026-10-13）：
+https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create
+https://developers.openai.com/api/reference/resources/images/methods/generate
+
+素材归属：
+Wallhaven：https://wallhaven.cc/help/api
+MotionBGS：https://motionbgs.com/page/about
+只下载公开提供的壁纸资源用于本机展示，保存原始来源链接，不重新分发网站素材或移除其原有标记。网络来源作品的版权归各自权利人。网站分类推荐不冒称经过验证的日榜。
+
+概率：图片、视频、AI 按 10% 步长调整。图片与视频互补，默认各 50%；AI 占全部素材的目标概率默认 30%，仅生成图片，因此不超过图片概率。先按图片概率抽签，再按 AI概率/图片概率抽签。第四天类型约束优先；AI 关闭、密钥缺失或生成失败会降低实际 AI 占比，不以额外付费调用补齐比例。
+
+全屏构图：图片居中裁切至976×596，视频由原生组件全屏显示。AI提示词要求人物面部和关键物件靠右、左侧约30%保留背景。预览镜头仅为遮挡示意，不会写入图片。
+
+网络素材筛选：仅在本机匹配可编辑的排除词；Wallhaven 读取作品详情标签，MotionBGS 检查标题、简介、作品标签和链接。不会将图片或视频上传至任何视觉模型。未被文字标注的画面可能漏过；该功能不等同于视觉内容审核。
+
+0.4：原站浏览与作品选择、可选搜索关键词、选题提示词编辑、最近30条历史。关键词为空时不添加 q 搜索参数；原网页展示不经过 App 排除词处理，应用前仍检查作品元数据。原站浏览基于 Android WebView，无 JavaScript 原生桥，不开放本地文件读取。
+
+0.5：今日预览右下角红心收藏；收藏与最近 30 条历史保留媒体文件，可直接应用原缓存，视频封面点击播放。收藏独立保留，取消收藏后仍被历史或当前显示引用的素材不会删除。旧版本已经清理的素材不能凭空还原；网络记录可尝试重新从原站恢复，原图失效的旧 AI 记录保留提示词供再次创作，不自动付费重生。图库每页 12 条，异步加载预览。
+密钥使用 Android Keystore 分接口加密；保留既有百炼配置；更换兼容服务域名时须重新填写该服务密钥。生产构建不包含调试仪器或凭证。
+
+0.8：Shizuku 自动初始化
+Shizuku API / provider / shared / aidl 13.1.5：MIT，Copyright (c) 2021 RikkaW。
+https://github.com/RikkaApps/Shizuku-API
+AndroidX Annotation 1.3.0：Apache-2.0，Android Open Source Project。
+https://developer.android.com/jetpack/androidx/releases/annotation
+固定依赖摘要见源码 dependencies.json；许可证原文随 assets/licenses 保存。Shizuku 为用户独立安装的官方应用，不随本 APK 分发。服务只执行本 App 的模板安装脚本，安装结束释放；日常换图不依赖 Shizuku。
+
+内置欢迎素材：本项目原创几何山景与循环动画，采用 MIT 许可证。生成脚本 scripts/generate_welcome.py；不包含网络壁纸、用户相册或开发测试视频。

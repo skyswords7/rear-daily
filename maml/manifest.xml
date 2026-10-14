@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Widget version="2" frameRate="10" screenWidth="976" scaleByDensity="false" transparentSurface="true" useVariableUpdater="DateTime.Second">
+ <Var name="inAod" expression="0" const="true"/><Var name="screenPaused" expression="0" const="true"/>
+ <Var name="refreshTick" expression="int(#second/10)"><Trigger><BinderCommand name="mediaState" command="refresh"/></Trigger></Var>
+ <VariableBinders><ContentProviderBinder name="mediaState" uri="content://com.reardaily.media/state" columns="version,image,video,title,mode">
+  <Variable name="mediaVersion" column="version" type="string"/>
+  <Variable name="mediaImage" column="image" type="string"/>
+  <Variable name="mediaVideo" column="video" type="string"/>
+  <Variable name="mediaTitle" column="title" type="string"/>
+  <Variable name="displayMode" column="mode" type="number"/>
+  <Trigger><IfCommand ifCondition="(#displayMode==1)+#inAod+#screenPaused"><Consequent><VideoCommand target="nativeVideo" command="pause"/></Consequent><Alternate><VideoCommand target="nativeVideo" command="play"/></Alternate></IfCommand></Trigger>
+ </ContentProviderBinder></VariableBinders>
+ <Rectangle x="0" y="0" w="#view_width" h="#view_height" fillColor="#FF071521"/>
+ <Image name="nativeImage" visibility="#displayMode!=2" x="ifelse(#displayMode==3,#view_width*0.34,0)" y="ifelse(#displayMode==3,#view_height*0.18,0)" w="ifelse(#displayMode==3,#view_width*0.29,#view_width)" h="ifelse(#displayMode==3,#view_height*0.60,#view_height)" src="@mediaImage" srcType="Uri" loadAsync="false"/>
+ <Video name="nativeVideo" visibility="#displayMode!=1" path="@mediaVideo" loop="1" scaleMode="2" x="ifelse(#displayMode==3,#view_width*0.66,0)" y="ifelse(#displayMode==3,#view_height*0.18,0)" w="ifelse(#displayMode==3,#view_width*0.32,#view_width)" h="ifelse(#displayMode==3,#view_height*0.60,#view_height)" layerType="top"/>
+ <Text visibility="#displayMode==3" x="#view_width*0.34" y="#view_height*0.06" size="25" color="#FF66FFBB" textExp="@mediaTitle"/>
+ <Text visibility="#displayMode==3" x="#view_width*0.34" y="#view_height*0.82" size="22" color="#FFFFFFFF" textExp="'VIDEO: ' + @nativeVideo.playState"/>
+ <Text visibility="#displayMode==3" x="#view_width*0.34" y="#view_height*0.91" size="21" color="#FFFFFFFF" textExp="'IMG: ' + #nativeImage.bmp_width + ' TIME: ' + #nativeVideo.position"/>
+ <ExternalCommands>
+  <Trigger action="init"><BinderCommand name="mediaState" command="refresh"/></Trigger>
+  <Trigger action="resume"><VariableCommand name="screenPaused" expression="0"/><BinderCommand name="mediaState" command="refresh"/></Trigger>
+  <Trigger action="exitAod"><VariableCommand name="inAod" expression="0"/><BinderCommand name="mediaState" command="refresh"/></Trigger>
+  <Trigger action="pause"><VariableCommand name="screenPaused" expression="1"/><VideoCommand target="nativeVideo" command="pause"/></Trigger>
+  <Trigger action="enterAod"><VariableCommand name="inAod" expression="1"/><VideoCommand target="nativeVideo" command="pause"/></Trigger>
+  <Trigger action="finish"><VideoCommand target="nativeVideo" command="release"/></Trigger>
+ </ExternalCommands>
+</Widget>

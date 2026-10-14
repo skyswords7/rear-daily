@@ -1,0 +1,17 @@
+/build/
+*.keystore
+*.jks
+*.p12
+*.key
+*.secret
+.env
+.env.*
+!.env.example
+local.properties
+/private/
+/.private/
+__pycache__/
+*.pyc
+/maml/rearscreen
+/maml/rearscreen-probe
+/verification-*.txt
